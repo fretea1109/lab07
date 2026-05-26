@@ -7,14 +7,16 @@ jobs:
     steps:
       - name: check out the code
         uses: actions/checkout@v4
-        
-      - name: copy file to dev server
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.SSH_USER_NAME }}
-          port: ${{ secrets.SSH_PORT }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "./html/*"
-          target: "/var/www/dev-site"
-          strip_components: 1
+
+      - name: install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: deploy to dev server
+        run: |
+          # 创建私钥文件
+          echo "${{ secrets.SSH_KEY }}" > private_key
+          chmod 600 private_key
+          
+          # 使用 rsync 同步文件
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i private_key -p ${{ secrets.SSH_PORT }}" \
+            ./html/ ${{ secrets.SSH_USER_NAME }}@${{ secrets.HOST }}:/var/www/dev-site/

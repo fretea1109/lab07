@@ -10,14 +10,13 @@ jobs:
     steps:
       - name: check out the code
         uses: actions/checkout@v4
-        
-      - name: copy file to prod server
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.SSH_USER_NAME }}
-          port: ${{ secrets.SSH_PORT }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "./html/*"
-          target: "/var/www/prod-site"
-          strip_components: 1
+
+      - name: install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: deploy to prod server
+        run: |
+          echo "${{ secrets.SSH_KEY }}" > private_key
+          chmod 600 private_key
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i private_key -p ${{ secrets.SSH_PORT }}" \
+            ./html/ ${{ secrets.SSH_USER_NAME }}@${{ secrets.PROD_HOST }}:/var/www/prod-site/
